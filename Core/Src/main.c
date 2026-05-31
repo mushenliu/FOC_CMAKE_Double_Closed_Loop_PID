@@ -287,7 +287,7 @@ int main(void)
         theta = TLE5012B_Angle();
         wm = (1 - Speed_Filter) * (theta - theta_last) + Speed_Filter * wm;
         Ud = 12;
-        if (wm < 0.01 && wm > -0.01)
+        if (wm < 0.000001 && wm > -0.000001)
         {
             k++;
         }
@@ -318,17 +318,19 @@ int main(void)
     JUSTFLOAT_AddData(&theta_e);
     JUSTFLOAT_AddData(&wm);
     JUSTFLOAT_AddData(&Udc);
-    JUSTFLOAT_AddData(&Current_abc[0]);
-    JUSTFLOAT_AddData(&Current_abc[1]);
-    JUSTFLOAT_AddData(&Current_abc[2]);
+    // JUSTFLOAT_AddData(&Current_abc[0]);
+    // JUSTFLOAT_AddData(&Current_abc[1]);
+    // JUSTFLOAT_AddData(&Current_abc[2]);
     JUSTFLOAT_AddData(&D);
     JUSTFLOAT_AddData(&Q);
-    JUSTFLOAT_AddData(&Duty_A);
-    JUSTFLOAT_AddData(&Duty_B);
-    JUSTFLOAT_AddData(&Duty_C);
+    // JUSTFLOAT_AddData(&Duty_A);
+    // JUSTFLOAT_AddData(&Duty_B);
+    // JUSTFLOAT_AddData(&Duty_C);
     JUSTFLOAT_AddData(&Angel_ZERO);
     JUSTFLOAT_AddData(&Ud);
     JUSTFLOAT_AddData(&Uq);
+    JUSTFLOAT_AddData(&D_PID.Setvalue);
+    JUSTFLOAT_AddData(&Q_PID.Setvalue);
 
     /* USER CODE END 2 */
 
