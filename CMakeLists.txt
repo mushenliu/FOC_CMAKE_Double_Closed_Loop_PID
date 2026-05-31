@@ -47,7 +47,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         User/MY_TLE5012B.c
         User/MY_CONTROL.c
         User/MY_JUSTFLOAT.c
-        User/MY_TLE5012B.c
+        User/MY_CALLBACK.c
     # Add user sources here
 )
 
