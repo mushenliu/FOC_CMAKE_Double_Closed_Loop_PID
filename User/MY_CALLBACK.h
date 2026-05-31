@@ -29,7 +29,6 @@
 
 //速度环连续域PID参数
 #define Speed_Kp 0.001
-//0.001
 #define Speed_Ki 0.005
 #define Speed_Kd 0
 #define Speed_N 100
@@ -45,10 +44,10 @@
 #define ID_Target_Default 0
 #define IQ_Target_Default 0
 //默认给定转速，单位rpm
-#define Speed_Target_Default 200
+#define Speed_Target_Default 0
 
 //速度环输出限幅（电流环给定限幅）
-#define Speed_Output_Limit 0.5
+#define Speed_Output_Limit 1
 
 //PID控制律结构体
 typedef struct {
