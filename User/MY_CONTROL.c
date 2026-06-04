@@ -281,10 +281,10 @@ void Current_Control() {
     Uq = Q_PID.Output_Now;
     //SVPWM调制
     SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
-    Q_PID.Output_Now = Uq;
-    Q_PID.Output_Record[0] = Q_PID.Output_Now;
-    D_PID.Output_Now = Ud;
-    D_PID.Output_Record[0] = D_PID.Output_Now;
+    // Q_PID.Output_Now = Uq;
+    // Q_PID.Output_Record[0] = Q_PID.Output_Now;
+    // D_PID.Output_Now = Ud;
+    // D_PID.Output_Record[0] = D_PID.Output_Now;
     //设定CCR值
     Set_CCR(Duty_A, Duty_B, Duty_C);
     HAL_GPIO_WritePin(Test_GPIO_Port,Test_Pin, GPIO_PIN_RESET);

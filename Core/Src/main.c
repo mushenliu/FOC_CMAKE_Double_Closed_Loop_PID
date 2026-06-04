@@ -294,7 +294,7 @@ int main(void)
         else
         {
             k = 0;
-            Angel_ZERO -= 5 * wm;
+            Angel_ZERO -= 0.001 * wm;
         }
     }
     theta = 0;
@@ -304,6 +304,7 @@ int main(void)
     theta_e = 0;
     Ud = 0;
     Uq = 0;
+    // Angel_ZERO = 90;
     //电流环控制中断
     HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_4);
     //速度环控制中断

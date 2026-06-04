@@ -44,10 +44,10 @@
 #define ID_Target_Default 0
 #define IQ_Target_Default 0
 //默认给定转速，单位rpm
-#define Speed_Target_Default 0
+#define Speed_Target_Default 200
 
 //速度环输出限幅（电流环给定限幅）
-#define Speed_Output_Limit 1
+#define Speed_Output_Limit 0.5
 
 //PID控制律结构体
 typedef struct {
