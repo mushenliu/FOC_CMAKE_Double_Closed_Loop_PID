@@ -20,18 +20,21 @@
 #define D_Ki 10000
 #define D_Kd 0.0001
 #define D_N 10000
+#define D_ANTI_SAT (D_Kp/D_Ki)
 
 //Q轴电流环连续域PID参数
 #define Q_Kp 30
 #define Q_Ki 10000
 #define Q_Kd 0.0001
 #define Q_N 10000
+#define Q_ANTI_SAT (Q_Kp/Q_Ki)
 
 //速度环连续域PID参数
 #define Speed_Kp 0.001
 #define Speed_Ki 0.005
 #define Speed_Kd 0
 #define Speed_N 100
+#define Speed_ANTI_SAT (Speed_Kp/Speed_Ki)
 
 //速度环和电流环采样周期，单位s
 #define Ts_Current ((__HAL_TIM_GET_AUTORELOAD(&htim1)+1)/170000000.0) * 2
@@ -44,7 +47,7 @@
 #define ID_Target_Default 0
 #define IQ_Target_Default 0
 //默认给定转速，单位rpm
-#define Speed_Target_Default 200
+#define Speed_Target_Default 0
 
 //速度环输出限幅（电流环给定限幅）
 #define Speed_Output_Limit 0.5
