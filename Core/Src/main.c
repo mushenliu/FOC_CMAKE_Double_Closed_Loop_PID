@@ -343,8 +343,6 @@ int main(void)
     Angel_ZERO += 360 - theta_e;
     Angel_ZERO = Angel_ZERO / 3;
 
-    // Angel_ZERO = -90;
-
     //电流环控制中断
     HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_4);
     //速度环控制中断
@@ -359,9 +357,6 @@ int main(void)
     JUSTFLOAT_AddData(&theta_e);
     JUSTFLOAT_AddData(&wm);
     JUSTFLOAT_AddData(&Udc);
-    // JUSTFLOAT_AddData(&Current_abc[0]);
-    // JUSTFLOAT_AddData(&Current_abc[1]);
-    // JUSTFLOAT_AddData(&Current_abc[2]);
     JUSTFLOAT_AddData(&D);
     JUSTFLOAT_AddData(&Q);
     // JUSTFLOAT_AddData(&Duty_A);
@@ -372,6 +367,7 @@ int main(void)
     JUSTFLOAT_AddData(&Uq);
     JUSTFLOAT_AddData(&D_PID.Setvalue);
     JUSTFLOAT_AddData(&Q_PID.Setvalue);
+    JUSTFLOAT_AddData(&Speed_PID.Setvalue);
     JUSTFLOAT_AddData(&Current_abc[0]);
     JUSTFLOAT_AddData(&Current_abc[1]);
     JUSTFLOAT_AddData(&Current_abc[2]);
