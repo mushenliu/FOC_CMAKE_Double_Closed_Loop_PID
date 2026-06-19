@@ -50,7 +50,7 @@
 #define Speed_Target_Default 0
 
 //速度环输出限幅（电流环给定限幅）
-#define Speed_Output_Limit 0.5
+#define Speed_Output_Limit 0.75
 
 //PID控制律结构体
 typedef struct {
