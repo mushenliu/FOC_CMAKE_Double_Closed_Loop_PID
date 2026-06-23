@@ -36,73 +36,9 @@ void Inv_Park_Trans(float D, float Q, float Sin, float Cos, float* alpha, float*
     arm_inv_park_f32(D, Q, alpha, beta, Sin, Cos);
 }
 
-void CORDIC_Calc_SinCos(float theta, float* Sin, float* Cos)
-{
-    int32_t OutputBuff[2];
-    int32_t cordic31[2];
-    while (theta > 360)
-    {
-        theta = theta - 360;
-    }
-    float theta_sin = 90 + theta;
-    float theta_cos = theta / 360;
-    theta_sin = theta_sin / 360;
-    if (theta_cos > 0.5)
-    {
-        theta_cos = theta_cos - 1;
-    }
-    if (theta_sin > 0.5)
-    {
-        theta_sin = theta_sin - 1;
-    }
-    cordic31[0] = (int32_t)((theta_cos / 0.5f) * 0x80000000); //value对coeff归一化，然后扩大2^31倍，取整得到Q31定点数据
-    cordic31[1] = (int32_t)((theta_sin / 0.5f) * 0x80000000);
-
-    HAL_CORDIC_Calculate(&hcordic, cordic31, OutputBuff, 2, 0);
-
-    Q31_to_Float(OutputBuff[0], Cos);
-    Q31_to_Float(-OutputBuff[1], Sin);
-}
-
 void DSP_Float_Calc_SinCos(float theta, float* Sin, float* Cos)
 {
     arm_sin_cos_f32(theta, Sin, Cos);
-}
-
-void DSP_Fixed_Calc_SinCos(float theta, float* Sin, float* Cos)
-{
-    int32_t OutputBuff[2];
-    int32_t cordic31;
-    while (theta > 360)
-    {
-        theta = theta - 360;
-    }
-    float theta_cos = theta / 360;
-    if (theta_cos > 0.5)
-    {
-        theta_cos = theta_cos - 1;
-    }
-    cordic31 = (int32_t)((theta_cos / 0.5f) * 0x80000000); //value对coeff归一化，然后扩大2^31倍，取整得到Q31定点数据
-
-
-    arm_sin_cos_q31(cordic31, &OutputBuff[0], &OutputBuff[1]);
-
-
-    Q31_to_Float(OutputBuff[0], Sin);
-    Q31_to_Float(OutputBuff[1], Cos);
-}
-
-void Q31_to_Float(int Q31, float* Data)
-{
-    if (Q31 & 0x80000000) //为负数
-    {
-        Q31 = Q31 & 0x7fffffff;
-        *Data = ((float)(Q31) - 0x80000000) / 0x80000000;
-    }
-    else //为正数
-    {
-        *Data = (float)(Q31) / 0x80000000;
-    }
 }
 
 void SVPWM_Modulation(float Ud, float Uq, float Sin, float Cos, float Udc, float* Duty_A, float* Duty_B,

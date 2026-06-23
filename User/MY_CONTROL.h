@@ -13,17 +13,8 @@ void Park_Trans(float alpha, float beta, float Sin, float Cos, float *D, float *
 
 void Inv_Park_Trans(float D, float Q, float Sin, float Cos, float *alpha, float *beta);
 
-//使用CORDIC计算三角函数
-void CORDIC_Calc_SinCos(float theta, float *Sin, float *Cos);
-
 //使用DSP浮点计算三角函数
 void DSP_Float_Calc_SinCos(float theta, float *Sin, float *Cos);
-
-//使用DSP定点计算三角函数
-void DSP_Fixed_Calc_SinCos(float theta, float *Sin, float *Cos);
-
-//Q31到float类型转化
-void Q31_to_Float(int Q31, float *Data);
 
 //SVPWM调制法计算三相占空比
 void SVPWM_Modulation(float Ud, float Uq, float Sin, float Cos, float Udc, float *Duty_A, float *Duty_B, float *Duty_C);
