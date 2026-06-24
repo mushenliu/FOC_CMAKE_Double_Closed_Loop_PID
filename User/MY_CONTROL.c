@@ -234,14 +234,8 @@ void Current_Control()
     extern float Cos;
     //计算电角度
     theta_e = theta * MOTOR_POLE_PAIRS + Angel_ZERO;
-    while (theta_e > 360)
-    {
-        theta_e -= 360;
-    }
-    while (theta_e < 0)
-    {
-        theta_e += 360;
-    }
+    theta_e = fmod(theta_e, 360);
+    theta_e<0?theta_e+=360:theta_e;
     //计算三角函数
     DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
     //计算电流
@@ -257,11 +251,6 @@ void Current_Control()
     Discrete_PID_Controller(&Q_PID);
     Ud = D_PID.Output_Now;
     Uq = Q_PID.Output_Now;
-
-    // //开环拖动
-    // Ud = 5;
-    // Uq = 0;
-
     //SVPWM调制
     SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
     Q_PID.Output_Now = Uq;

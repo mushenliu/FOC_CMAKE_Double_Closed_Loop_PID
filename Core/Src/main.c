@@ -203,31 +203,6 @@ int main(void)
     int k = 0;
     Ud = 12;
     Uq = 0;
-    // //遍历矫正编码器零位
-    // do
-    // {
-    //     theta_last = theta_e;
-    //     for (int i = 0; i < 100; i++)
-    //     {
-    //         theta_e = TLE5012B_Angle();
-    //         theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
-    //         DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
-    //         SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
-    //         Set_CCR(Duty_A, Duty_B, Duty_C);
-    //     }
-    //     theta_e = TLE5012B_Angle();
-    //     wm = (1 - Speed_Filter) * (theta_e - theta_last) + Speed_Filter * wm;
-    //     Angel_ZERO += 0.05;
-    //     if (wm < 0.01 && wm > -0.01)
-    //     {
-    //         k++;
-    //     }
-    //     else
-    //     {
-    //         k = 0;
-    //     }
-    // }
-    // while (k < 5);
 
     // //基于I闭环控制模型抽象的编码器零位矫正
     //  float wm_0_90[2] = {0};
@@ -304,42 +279,29 @@ int main(void)
     //      }
     //  }
 
+
     //基于转子吸附的编码器零位矫正
+    //A相
     Set_CCR(0.9,0.1,0.1);
     HAL_Delay(1000);
     theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS;
-    while (theta_e > 360)
-    {
-        theta_e -= 360;
-    }
-    while (theta_e < 0)
-    {
-        theta_e += 360;
-    }
+    theta_e = fmod(theta_e, 360);
+    theta_e<0?theta_e+=360:theta_e;
     Angel_ZERO += 360 - theta_e;
+    //B相
     Set_CCR(0.1,0.9,0.1);
     HAL_Delay(1000);
     theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS - 120;
-    while (theta_e > 360)
-    {
-        theta_e -= 360;
-    }
-    while (theta_e < 0)
-    {
-        theta_e += 360;
-    }
-    Angel_ZERO += 360 - theta_e;
+    theta_e = fmod(theta_e, 360);
+    theta_e<0?theta_e+=360:theta_e;
+    Angel_ZERO += 360 - theta_e;  
+    //C相
     Set_CCR(0.1,0.1,0.9);
     HAL_Delay(1000);
     theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS + 120;
-    while (theta_e > 360)
-    {
-        theta_e -= 360;
-    }
-    while (theta_e < 0)
-    {
-        theta_e += 360;
-    }
+    theta_e = fmod(theta_e, 360);
+    theta_e<0?theta_e+=360:theta_e;
+    
     Angel_ZERO += 360 - theta_e;
     Angel_ZERO = Angel_ZERO / 3;
 
