@@ -1,10 +1,11 @@
 #include "MY_TLE5012B.h"
+#include "stm32g4xx_hal_spi.h"
 
 uint16_t TLE5012B_SPI_Read(uint16_t Order_Word) {
     uint16_t ReceiveData = 0;
     SPI_CS_ENABLE;
-    HAL_SPI_Transmit(&hspi1, (uint8_t *) &Order_Word, 1,HAL_MAX_DELAY);
-    HAL_SPI_Receive(&hspi1, (uint8_t *) &ReceiveData, 1,HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi1, (uint8_t *) &Order_Word, 1, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi1, (uint8_t *) &ReceiveData, 1, HAL_MAX_DELAY);
     ReceiveData = ReceiveData & 0x7FFF; //舍弃最高位状态位
     SPI_CS_DISABLE;
     return ReceiveData;

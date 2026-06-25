@@ -41,8 +41,8 @@ void DSP_Float_Calc_SinCos(float theta, float* Sin, float* Cos)
     arm_sin_cos_f32(theta, Sin, Cos);
 }
 
-void SVPWM_Modulation(float Ud, float Uq, float Sin, float Cos, float Udc, float* Duty_A, float* Duty_B,
-                      float* Duty_C)
+void SVPWM_Modulation(float* Ud, float* Uq, float Sin, float Cos, float U_svpwm_max,float Udc,
+    float* Duty_A, float* Duty_B,float* Duty_C)
 {
     float U_alpha, U_beta = 0;
     float A0, A1, A2 = 0;
@@ -50,7 +50,23 @@ void SVPWM_Modulation(float Ud, float Uq, float Sin, float Cos, float Udc, float
     float T_U1, T_U2, T_U0 = 0;
     float D_0, D_1, D_2;
     uint8_t N = 0;
-    Inv_Park_Trans(Ud, Uq, Sin, Cos, &U_alpha, &U_beta);
+    float u_mag = 0;
+    if (U_svpwm_max == 0)
+    {
+        return;
+    }
+    arm_sqrt_f32((*Ud) * (*Ud) + (*Uq) * (*Uq), &u_mag);
+    if (u_mag > U_svpwm_max)
+    {
+        u_mag = U_svpwm_max / u_mag;
+    }
+    else
+    {
+        u_mag = 1;
+    }
+    *Ud = (*Ud) * u_mag;
+    *Uq = (*Uq) * u_mag;
+    Inv_Park_Trans(*Ud, *Uq, Sin, Cos, &U_alpha, &U_beta);
     A0 = U_beta;
     A1 = SQRT3 / 2 * U_alpha - 0.5 * U_beta;
     A2 = -SQRT3 / 2 * U_alpha - 0.5 * U_beta;
@@ -145,8 +161,8 @@ void SVPWM_Modulation(float Ud, float Uq, float Sin, float Cos, float Udc, float
     }
 }
 
-void SVPWM_Calculation(float* Ud, float* Uq, float Sin, float Cos, float Udc, float* Duty_A, float* Duty_B,
-                       float* Duty_C)
+void SVPWM_Calculation(float* Ud, float* Uq, float Sin, float Cos, float U_svpwm_max,float Udc,
+    float* Duty_A, float* Duty_B,float* Duty_C)
 {
     float U_alpha, U_beta = 0;
     float U_ABC[3] = {0};
@@ -154,14 +170,15 @@ void SVPWM_Calculation(float* Ud, float* Uq, float Sin, float Cos, float Udc, fl
     float U_0 = 0;
     uint32_t p = 0;
     float u_mag = 0;
-    if (Udc == 0)
+    if (U_svpwm_max == 0)
     {
         return;
     }
     arm_sqrt_f32((*Ud) * (*Ud) + (*Uq) * (*Uq), &u_mag);
-    if (u_mag > Udc / SQRT3)
+    if (u_mag > U_svpwm_max)
     {
-        u_mag = Udc / SQRT3 / u_mag;
+        u_mag = U_svpwm_max / u_mag;
+
     }
     else
     {
@@ -226,12 +243,18 @@ void Current_Control()
     extern float Uq;
     //母线电压
     extern float Udc;
+    //SVPWM最大电压
+    extern float U_svpwm_max;
     //DQ轴电流控制器
     extern Discrete_PID_Struct D_PID;
     extern Discrete_PID_Struct Q_PID;
     //三角函数
     extern float Sin;
     extern float Cos;
+    //电流环运行标志位
+    extern bool Current_Control_Flag;
+    //置位标志位
+    Current_Control_Flag = true;
     //计算电角度
     theta_e = theta * MOTOR_POLE_PAIRS + Angel_ZERO;
     theta_e = fmod(theta_e, 360);
@@ -241,10 +264,10 @@ void Current_Control()
     //计算电流
     Clarke_Trans(Current_abc[0], Current_abc[1], Current_abc[2], &alpha, &beta);
     Park_Trans(alpha, beta, Sin, Cos, &D, &Q);
-    // //PID计算，含反算抗积分饱和
-    // D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Now);
-    // Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Now);
-    //PID计算，不含抗积分饱和
+    //PID计算，含反算抗积分饱和
+    D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Record[0]);
+    Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Record[0]);
+    // //PID计算
     D_PID.Error_Now = D_PID.Setvalue - D;
     Q_PID.Error_Now = Q_PID.Setvalue - Q;
     Discrete_PID_Controller(&D_PID);
@@ -252,13 +275,13 @@ void Current_Control()
     Ud = D_PID.Output_Now;
     Uq = Q_PID.Output_Now;
     //SVPWM调制
-    SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
-    Q_PID.Output_Now = Uq;
-    Q_PID.Output_Record[0] = Q_PID.Output_Now;
-    D_PID.Output_Now = Ud;
-    D_PID.Output_Record[0] = D_PID.Output_Now;
+    SVPWM_Calculation(&Ud, &Uq, Sin, Cos, U_svpwm_max, Udc, &Duty_A, &Duty_B, &Duty_C);
+    // Q_PID.Output_Record[0] = Uq;
+    // D_PID.Output_Record[0] = Ud;
     //设定CCR值
     Set_CCR(Duty_A, Duty_B, Duty_C);
+    //重置标志位
+    Current_Control_Flag = false;
     HAL_GPIO_WritePin(Test_GPIO_Port,Test_Pin, GPIO_PIN_RESET);
 }
 
@@ -274,31 +297,22 @@ void Speed_Control()
 
     //PID计算，含反算抗积分饱和
     Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
+    // //PID计算
+    // Speed_PID.Error_Now = Speed_PID.Setvalue - wm;
     Discrete_PID_Controller(&Speed_PID);
     //采用Id=0，Iq给定的控制策略
-    // if (Speed_PID.Output_Now < -Speed_Output_Limit)
-    // {
-    //     Q_PID.Setvalue = -Speed_Output_Limit;
-    // }
-    // else if (Speed_PID.Output_Now > Speed_Output_Limit)
-    // {
-    //     Q_PID.Setvalue = Speed_Output_Limit;
-    // }
-    // else
-    // {
-    //     Q_PID.Setvalue = Speed_PID.Output_Now;
-    // }
-
     if (Speed_PID.Output_Now < -Speed_Output_Limit)
     {
-        Speed_PID.Output_Now = -Speed_Output_Limit;
+        Q_PID.Setvalue = -Speed_Output_Limit;
     }
     else if (Speed_PID.Output_Now > Speed_Output_Limit)
     {
-        Speed_PID.Output_Now = Speed_Output_Limit;
+        Q_PID.Setvalue = Speed_Output_Limit;
     }
-    Q_PID.Setvalue = Speed_PID.Output_Now;
-    Speed_PID.Output_Record[0] = Speed_PID.Output_Now;
+    else
+    {
+        Q_PID.Setvalue = Speed_PID.Output_Now;
+    }
 }
 
 void PID_Struct_Init(float Kp, float Ki, float Kd, float N, float Ts, float Default_Set, Discrete_PID_Struct* PID)

@@ -60,8 +60,6 @@
 uint32_t ADC_Data[3] = {0, 0, 0};
 //ADC采样转换后电流数据
 float Current_abc[3] = {0, 0, 0};
-//ADC低通滤波
-float Current_abc_last[3] = {0, 0, 0};
 //机械角度
 float theta = 0;
 float theta_last = 0;
@@ -89,6 +87,8 @@ float Duty_B = 0;
 float Duty_C = 0;
 //母线电压
 float Udc = U_DC_Default;
+//SVPWM最大电压
+float U_svpwm_max = U_DC_Default / SQRT3;
 //DQ轴驱动电压
 float Ud = 0;
 float Uq = 0;
@@ -101,6 +101,8 @@ Discrete_PID_Struct D_PID, Q_PID, Speed_PID;
 uint8_t UART_Buffer[100];
 float Order = 0;
 uint16_t UART_Length = 0;
+//电流环运行标志位
+bool Current_Control_Flag = false;
 
 /* USER CODE END PV */
 
@@ -121,40 +123,41 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
-    /* USER CODE BEGIN 1 */
 
-    /* USER CODE END 1 */
+  /* USER CODE BEGIN 1 */
 
-    /* MCU Configuration--------------------------------------------------------*/
+  /* USER CODE END 1 */
 
-    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-    HAL_Init();
+  /* MCU Configuration--------------------------------------------------------*/
 
-    /* USER CODE BEGIN Init */
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-    /* USER CODE END Init */
+  /* USER CODE BEGIN Init */
 
-    /* Configure the system clock */
-    SystemClock_Config();
+  /* USER CODE END Init */
 
-    /* USER CODE BEGIN SysInit */
+  /* Configure the system clock */
+  SystemClock_Config();
 
-    /* USER CODE END SysInit */
+  /* USER CODE BEGIN SysInit */
 
-    /* Initialize all configured peripherals */
-    MX_GPIO_Init();
-    MX_DMA_Init();
-    MX_OPAMP1_Init();
-    MX_OPAMP2_Init();
-    MX_OPAMP3_Init();
-    MX_SPI1_Init();
-    MX_TIM1_Init();
-    MX_UART4_Init();
-    MX_ADC1_Init();
-    MX_ADC2_Init();
-    MX_CORDIC_Init();
-    MX_TIM2_Init();
-    /* USER CODE BEGIN 2 */
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_OPAMP1_Init();
+  MX_OPAMP2_Init();
+  MX_OPAMP3_Init();
+  MX_SPI1_Init();
+  MX_TIM1_Init();
+  MX_UART4_Init();
+  MX_ADC1_Init();
+  MX_ADC2_Init();
+  MX_CORDIC_Init();
+  MX_TIM2_Init();
+  /* USER CODE BEGIN 2 */
 
     HAL_UARTEx_ReceiveToIdle_DMA(&huart4, UART_Buffer, 100);
 
@@ -200,115 +203,138 @@ int main(void)
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     //编码器零位校准
-    int k = 0;
-    Ud = 12;
-    Uq = 0;
+
 
     // //基于I闭环控制模型抽象的编码器零位矫正
-    //  float wm_0_90[2] = {0};
-    //  for (int i = 0; i < 2; i++)
-    //  {
-    //      //读取起始机械角度
-    //      theta_last = TLE5012B_Angle();
-    //      // 给定Ud情况下转动
-    //      for (int j = 0; j < 50; j++)
-    //      {
-    //          theta_e = TLE5012B_Angle();
-    //          theta_e = theta_e * MOTOR_POLE_PAIRS + i * 90;
-    //          DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
-    //          SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
-    //          Set_CCR(Duty_A, Duty_B, Duty_C);
-    //      }
-    //      // 读取结束机械角度
-    //      theta = TLE5012B_Angle();
-    //      wm_0_90[i] = theta - theta_last;
-    //      Ud = 12;
-    //  }
-    //  if (wm_0_90[0] * wm_0_90[1] < 0)
-    //  {
-    //      //零位位于第一、第三象限
-    //      if (wm_0_90[1] < 0)
-    //      {
-    //          //零位位于第三象限
-    //          Angel_ZERO = 180;
-    //      }
-    //      else if (wm_0_90[1] > 0)
-    //      {
-    //          //零位位于第一象限
-    //          Angel_ZERO = 0;
-    //      }
-    //  }
-    //  else if (wm_0_90[0] * wm_0_90[1] > 0)
-    //  {
-    //      //零位位于第二、第四象限
-    //      if (wm_0_90[1] < 0)
-    //      {
-    //          //零位位于第二象限
-    //          Angel_ZERO = 90;
-    //      }
-    //      else if (wm_0_90[1] > 0)
-    //      {
-    //          //零位位于第四象限
-    //          Angel_ZERO = 270;
-    //      }
-    //  }
-    //  while (k < 3)
-    //  {
-    //      float Angle_ZERO_Init = Angel_ZERO;
-    //      theta_last = TLE5012B_Angle();
-    //      for (int i = 0; i < 100; i++)
-    //      {
-    //          theta_e = TLE5012B_Angle();
-    //          theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
-    //          DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
-    //          SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
-    //          Set_CCR(Duty_A, Duty_B, Duty_C);
-    //      }
-    //      theta = TLE5012B_Angle();
-    //      wm = (1 - Speed_Filter) * (theta - theta_last) + Speed_Filter * wm;
-    //      Ud = 12;
-    //      if (wm < 0.01 && wm > -0.01)
-    //      {
-    //          k++;
-    //      }
-    //      else
-    //      {
-    //          k = 0;
-    //          // Angel_ZERO += 0.001 * wm;
-    //          Angel_ZERO += 0.005;
-    //      }
-    //  }
+    // int k = 0;
+    // Ud = 12;
+    // Uq = 0;
+    // float wm_0_90[2] = {0};
+    // for (int i = 0; i < 2; i++)
+    // {
+    //     //读取起始机械角度
+    //     theta_last = TLE5012B_Angle();
+    //     // 给定Ud情况下转动
+    //     for (int j = 0; j < 50; j++)
+    //     {
+    //         theta_e = TLE5012B_Angle();
+    //         theta_e = theta_e * MOTOR_POLE_PAIRS + i * 90;
+    //         DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
+    //         SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
+    //         Set_CCR(Duty_A, Duty_B, Duty_C);
+    //     }
+    //     // 读取结束机械角度
+    //     theta = TLE5012B_Angle();
+    //     wm_0_90[i] = theta - theta_last;
+    //     Ud = 12;
+    // }
+    // if (wm_0_90[0] * wm_0_90[1] < 0)
+    // {
+    //     //零位位于第一、第三象限
+    //     if (wm_0_90[1] < 0)
+    //     {
+    //         //零位位于第三象限
+    //         Angel_ZERO = 180;
+    //     }
+    //     else if (wm_0_90[1] > 0)
+    //     {
+    //         //零位位于第一象限
+    //         Angel_ZERO = 0;
+    //     }
+    // }
+    // else if (wm_0_90[0] * wm_0_90[1] > 0)
+    // {
+    //     //零位位于第二、第四象限
+    //     if (wm_0_90[1] < 0)
+    //     {
+    //         //零位位于第二象限
+    //         Angel_ZERO = 90;
+    //     }
+    //     else if (wm_0_90[1] > 0)
+    //     {
+    //         //零位位于第四象限
+    //         Angel_ZERO = 270;
+    //     }
+    // }
+    // while (k < 3)
+    // {
+    //     float Angle_ZERO_Init = Angel_ZERO;
+    //     theta_last = TLE5012B_Angle();
+    //     for (int i = 0; i < 100; i++)
+    //     {
+    //         theta_e = TLE5012B_Angle();
+    //         theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
+    //         DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
+    //         SVPWM_Calculation(&Ud, &Uq, Sin, Cos, Udc, &Duty_A, &Duty_B, &Duty_C);
+    //         Set_CCR(Duty_A, Duty_B, Duty_C);
+    //     }
+    //     theta = TLE5012B_Angle();
+    //     wm = (1 - Speed_Filter) * (theta - theta_last) + Speed_Filter * wm;
+    //     Ud = 12;
+    //     if (wm < 0.01 && wm > -0.01)
+    //     {
+    //         k++;
+    //     }
+    //     else
+    //     {
+    //         k = 0;
+    //         // Angel_ZERO += 0.001 * wm;
+    //         Angel_ZERO += 0.005;
+    //     }
+    // }
 
 
     //基于转子吸附的编码器零位矫正
-    //A相
-    Set_CCR(0.9,0.1,0.1);
-    HAL_Delay(1000);
-    theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS;
-    theta_e = fmod(theta_e, 360);
-    theta_e<0?theta_e+=360:theta_e;
-    Angel_ZERO += 360 - theta_e;
-    //B相
-    Set_CCR(0.1,0.9,0.1);
-    HAL_Delay(1000);
-    theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS - 120;
-    theta_e = fmod(theta_e, 360);
-    theta_e<0?theta_e+=360:theta_e;
-    Angel_ZERO += 360 - theta_e;  
-    //C相
-    Set_CCR(0.1,0.1,0.9);
-    HAL_Delay(1000);
-    theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS + 120;
-    theta_e = fmod(theta_e, 360);
-    theta_e<0?theta_e+=360:theta_e;
+    int k = 0;
+    Ud = 5;
+    while(k<10)
+    {
+        //A相
+        Set_CCR(0.9,0.1,0.1);
+        HAL_Delay(500);
+        theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS;
+        theta_e = fmod(theta_e, 360);
+        theta_e<0?theta_e+=360:theta_e;
+        Angel_ZERO += 360 - theta_e;
+        //B相
+        Set_CCR(0.1,0.9,0.1);
+        HAL_Delay(500);
+        theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS - 120;
+        theta_e = fmod(theta_e, 360);
+        theta_e<0?theta_e+=360:theta_e;
+        Angel_ZERO += 360 - theta_e;  
+        //C相
+        Set_CCR(0.1,0.1,0.9);
+        HAL_Delay(500);
+        theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS + 120;
+        theta_e = fmod(theta_e, 360);
+        theta_e<0?theta_e+=360:theta_e;
+        Angel_ZERO += 360 - theta_e;
+        //计算零位
+        Angel_ZERO = Angel_ZERO / 3;
+        //验证
+        theta_last = TLE5012B_Angle();
+        for (int i = 0; i < 100; i++)
+        {
+            theta_e = TLE5012B_Angle();
+            theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
+            DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
+            SVPWM_Calculation(&Ud, &Uq, Sin, Cos, U_svpwm_max, Udc, &Duty_A, &Duty_B, &Duty_C);
+            Set_CCR(Duty_A, Duty_B, Duty_C);
+        }
+        theta = TLE5012B_Angle();
+        wm = (1 - Speed_Filter) * (theta - theta_last) + Speed_Filter * wm;
+        Ud = 12;
+        if (wm < 0.1 && wm > -0.1)
+        {
+            break; 
+        }
+        else {
+            k++;
+            Angel_ZERO = 0;
+        }
+    }
     
-    Angel_ZERO += 360 - theta_e;
-    Angel_ZERO = Angel_ZERO / 3;
-
-    //电流环控制中断
-    HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_4);
-    //速度环控制中断
-    HAL_TIM_Base_Start_IT(&htim2);
 
     //初始化
     JUSTFLOAT_Init();
@@ -334,17 +360,22 @@ int main(void)
     JUSTFLOAT_AddData(&Current_abc[1]);
     JUSTFLOAT_AddData(&Current_abc[2]);
 
-    /* USER CODE END 2 */
+    //电流环控制中断
+    HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_4);
+    //速度环控制中断
+    HAL_TIM_Base_Start_IT(&htim2);
 
-    /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
     while (1)
     {
-        /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-        /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
     }
-    /* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
@@ -353,43 +384,43 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-    /** Configure the main internal regulator output voltage
-    */
-    HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
+  /** Configure the main internal regulator output voltage
+  */
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
 
-    /** Initializes the RCC Oscillators according to the specified parameters
-    * in the RCC_OscInitTypeDef structure.
-    */
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
-    RCC_OscInitStruct.PLL.PLLN = 85;
-    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-    RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
-    RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
-        Error_Handler();
-    }
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
+  RCC_OscInitStruct.PLL.PLLN = 85;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-    /** Initializes the CPU, AHB and APB buses clocks
-    */
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-        | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
-    {
-        Error_Handler();
-    }
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
@@ -402,13 +433,13 @@ void SystemClock_Config(void)
   */
 void Error_Handler(void)
 {
-    /* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
     __disable_irq();
     while (1)
     {
     }
-    /* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
 /**
@@ -418,11 +449,11 @@ void Error_Handler(void)
   * @param  line: assert_param error line source number
   * @retval None
   */
-void assert_failed(uint8_t* file, uint32_t line)
+void assert_failed(uint8_t *file, uint32_t line)
 {
-    /* USER CODE BEGIN 6 */
+  /* USER CODE BEGIN 6 */
     /* User can add his own implementation to report the file name and line number,
        ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-    /* USER CODE END 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
