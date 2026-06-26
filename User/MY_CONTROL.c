@@ -168,7 +168,6 @@ void SVPWM_Calculation(float* Ud, float* Uq, float Sin, float Cos, float U_svpwm
     float U_ABC[3] = {0};
     float U_max, U_min = 0;
     float U_0 = 0;
-    uint32_t p = 0;
     float u_mag = 0;
     if (U_svpwm_max == 0)
     {
@@ -188,8 +187,8 @@ void SVPWM_Calculation(float* Ud, float* Uq, float Sin, float Cos, float U_svpwm
     *Uq = (*Uq) * u_mag;
     Inv_Park_Trans(*Ud, *Uq, Sin, Cos, &U_alpha, &U_beta);
     Inv_Clarke_Trans(U_alpha, U_beta, &U_ABC[0], &U_ABC[1], &U_ABC[2]);
-    arm_max_f32(U_ABC, 3, &U_max, &p);
-    arm_min_f32(U_ABC, 3, &U_min, &p);
+    arm_max_f32(U_ABC, 3, &U_max, NULL);
+    arm_min_f32(U_ABC, 3, &U_min, NULL);
     U_0 = -0.5 * (U_max + U_min);
     *Duty_A = 0.5 + (U_0 + U_ABC[0]) / Udc;
     *Duty_B = 0.5 + (U_0 + U_ABC[1]) / Udc;
@@ -264,12 +263,26 @@ void Current_Control()
     //计算电流
     Clarke_Trans(Current_abc[0], Current_abc[1], Current_abc[2], &alpha, &beta);
     Park_Trans(alpha, beta, Sin, Cos, &D, &Q);
-    //PID计算，含反算抗积分饱和
+    //PID计算，抗饱和方法为反算
+    // D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Record[0]);
+    // Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Record[0]);
+    //PID计算，抗饱和方法为饱和冻结和反算
+    //计算理论误差
     D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Record[0]);
     Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Record[0]);
-    // //PID计算
-    D_PID.Error_Now = D_PID.Setvalue - D;
-    Q_PID.Error_Now = Q_PID.Setvalue - Q;
+    if((D_PID.Output_Record[0] > Ud && D_PID.Error_Now > 0) 
+    || (D_PID.Output_Record[0] < Ud && D_PID.Error_Now < 0))
+    {
+        D_PID.Error_Now = 0;
+    }
+    if((Q_PID.Output_Record[0] > Uq && Q_PID.Error_Now > 0) 
+    || (Q_PID.Output_Record[0] < Uq && Q_PID.Error_Now < 0))
+    {
+        Q_PID.Error_Now = 0;
+    }
+    //PID计算，无抗饱和方法
+    // D_PID.Error_Now = D_PID.Setvalue - D;
+    // Q_PID.Error_Now = Q_PID.Setvalue - Q;
     Discrete_PID_Controller(&D_PID);
     Discrete_PID_Controller(&Q_PID);
     Ud = D_PID.Output_Now;
@@ -294,10 +307,26 @@ void Speed_Control()
     extern Discrete_PID_Struct Speed_PID;
     //当前角速度
     extern float wm;
-
-    //PID计算，含反算抗积分饱和
+    //速度环给定限幅
+    if(Speed_PID.Setvalue < -Speed_Target_Limit)
+    {
+        Speed_PID.Setvalue = -Speed_Target_Limit;
+    }
+    else if(Speed_PID.Setvalue > Speed_Target_Limit)
+    {
+        Speed_PID.Setvalue = Speed_Target_Limit;
+    }
+    //PID计算，抗饱和方法为反算
+    // Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
+    //PID计算，抗饱和方法为饱和冻结和反算
+    //计算理论误差
     Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
-    // //PID计算
+    if((Speed_PID.Output_Record[0] > Q_PID.Setvalue && Speed_PID.Error_Now > 0) 
+    || (Speed_PID.Output_Record[0] < Q_PID.Setvalue && Speed_PID.Error_Now < 0))
+    {
+        Speed_PID.Error_Now = 0;
+    }
+    //PID计算，无抗饱和方法
     // Speed_PID.Error_Now = Speed_PID.Setvalue - wm;
     Discrete_PID_Controller(&Speed_PID);
     //采用Id=0，Iq给定的控制策略

@@ -17,21 +17,21 @@
 #define D_Ki 10000
 #define D_Kd 0
 #define D_N 10000
-#define D_ANTI_SAT (1000/D_Ki)
+#define D_ANTI_SAT (D_Kp/D_Ki)
 
 //Q轴电流环连续域PID参数
 #define Q_Kp 30
 #define Q_Ki 10000
 #define Q_Kd 0
 #define Q_N 10000
-#define Q_ANTI_SAT (1000/Q_Ki)
+#define Q_ANTI_SAT (Q_Kp/Q_Ki)
 
 //速度环连续域PID参数
 #define Speed_Kp 0.001
 #define Speed_Ki 0.005
 #define Speed_Kd 0
 #define Speed_N 100
-#define Speed_ANTI_SAT (100/Speed_Ki)
+#define Speed_ANTI_SAT (1/Speed_Ki)
 
 //速度环和电流环采样周期，单位s
 #define Ts_Current ((__HAL_TIM_GET_AUTORELOAD(&htim1)+1)/170000000.0) * 2
@@ -48,6 +48,9 @@
 
 //速度环输出限幅（电流环给定限幅）
 #define Speed_Output_Limit 0.8
+
+//速度环给定限幅
+#define Speed_Target_Limit 400
 
 //PID控制律结构体
 typedef struct {

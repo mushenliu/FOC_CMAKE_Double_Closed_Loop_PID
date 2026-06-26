@@ -203,8 +203,7 @@ int main(void)
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     //编码器零位校准
-
-
+    
     // //基于I闭环控制模型抽象的编码器零位矫正
     // int k = 0;
     // Ud = 12;
