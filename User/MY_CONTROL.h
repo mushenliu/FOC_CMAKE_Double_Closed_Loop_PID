@@ -37,6 +37,7 @@ void Current_Control();
 void Speed_Control();
 
 //PID结构体初始化函数
-void PID_Struct_Init(float Kp, float Ki, float Kd, float N, float Ts, float Default_Set, Discrete_PID_Struct *PID);
+void PID_Struct_Init(float Kp, float Ki, float Kd, float N, float Ts, float Default_Set, 
+    Discrete_PID_Struct *PID);
 
 #endif //FOC_MY_CONTROL_H

@@ -182,12 +182,12 @@ int main(void)
       HAL_ADC_Start(&hadc1);
       if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK)
       {
-          ADC1_ZERO += HAL_ADC_GetValue(&hadc1) / 4096.0 * 3.3;
+        ADC1_ZERO += HAL_ADC_GetValue(&hadc1) / 4096.0 * 3.3;
       }
       HAL_ADC_Start(&hadc2);
       if (HAL_ADC_PollForConversion(&hadc2, HAL_MAX_DELAY) == HAL_OK)
       {
-          ADC2_ZERO += HAL_ADC_GetValue(&hadc2) / 4096.0 * 3.3;
+        ADC2_ZERO += HAL_ADC_GetValue(&hadc2) / 4096.0 * 3.3;
       }
     }
     ADC1_ZERO = ADC1_ZERO / 10.0;

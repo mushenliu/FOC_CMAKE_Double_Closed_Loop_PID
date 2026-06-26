@@ -263,23 +263,23 @@ void Current_Control()
     //计算电流
     Clarke_Trans(Current_abc[0], Current_abc[1], Current_abc[2], &alpha, &beta);
     Park_Trans(alpha, beta, Sin, Cos, &D, &Q);
-    //PID计算，抗饱和方法为反算
+    // PID计算，抗饱和方法为反算
+    D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Now);
+    Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Now);
+    //PID计算，抗饱和方法为饱和冻结和反算
+    // //计算理论误差
     // D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Record[0]);
     // Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Record[0]);
-    //PID计算，抗饱和方法为饱和冻结和反算
-    //计算理论误差
-    D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Record[0]);
-    Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Record[0]);
-    if((D_PID.Output_Record[0] > Ud && D_PID.Error_Now > 0) 
-    || (D_PID.Output_Record[0] < Ud && D_PID.Error_Now < 0))
-    {
-        D_PID.Error_Now = -D_PID.Error_Now * 0.5;
-    }
-    if((Q_PID.Output_Record[0] > Uq && Q_PID.Error_Now > 0) 
-    || (Q_PID.Output_Record[0] < Uq && Q_PID.Error_Now < 0))
-    {
-        Q_PID.Error_Now = -Q_PID.Error_Now * 0.5;  
-    }
+    // if((D_PID.Output_Record[0] > Ud && D_PID.Error_Now > 0) 
+    // || (D_PID.Output_Record[0] < Ud && D_PID.Error_Now < 0))
+    // {
+    //     D_PID.Error_Now = -D_PID.Error_Now * 0.1;
+    // }
+    // if((Q_PID.Output_Record[0] > Uq && Q_PID.Error_Now > 0) 
+    // || (Q_PID.Output_Record[0] < Uq && Q_PID.Error_Now < 0))
+    // {
+    //     Q_PID.Error_Now = -Q_PID.Error_Now * 0.1;
+    // }
     //PID计算，无抗饱和方法
     // D_PID.Error_Now = D_PID.Setvalue - D;
     // Q_PID.Error_Now = Q_PID.Setvalue - Q;
@@ -317,15 +317,15 @@ void Speed_Control()
         Speed_PID.Setvalue = Speed_Target_Limit;
     }
     //PID计算，抗饱和方法为反算
-    // Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
+    Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
     //PID计算，抗饱和方法为饱和冻结和反算
     //计算理论误差
-    Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
-    if((Speed_PID.Output_Record[0] > Q_PID.Setvalue && Speed_PID.Error_Now > 0) 
-    || (Speed_PID.Output_Record[0] < Q_PID.Setvalue && Speed_PID.Error_Now < 0))
-    {
-        Speed_PID.Error_Now = -Speed_PID.Error_Now * 0.5;
-    }
+    // Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
+    // if((Speed_PID.Output_Record[0] > Q_PID.Setvalue && Speed_PID.Error_Now > 0) 
+    // || (Speed_PID.Output_Record[0] < Q_PID.Setvalue && Speed_PID.Error_Now < 0))
+    // {
+    //     Speed_PID.Error_Now = 0;
+    // }
     //PID计算，无抗饱和方法
     // Speed_PID.Error_Now = Speed_PID.Setvalue - wm;
     Discrete_PID_Controller(&Speed_PID);
@@ -350,6 +350,11 @@ void PID_Struct_Init(float Kp, float Ki, float Kd, float N, float Ts, float Defa
     float I = Ki * Ts / 2.0;
     float D = (2 * Kd * N) / (N * Ts + 2.0);
     float Nd = (N * Ts - 2.0) / (N * Ts + 2.0);
+    if(Kd == 0)
+    {
+        Nd = 0;
+        D = 0;
+    }
 
     PID->Output_Now = 0;
     PID->Output_Record[0] = 0;
