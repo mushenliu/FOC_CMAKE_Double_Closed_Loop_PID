@@ -273,12 +273,12 @@ void Current_Control()
     if((D_PID.Output_Record[0] > Ud && D_PID.Error_Now > 0) 
     || (D_PID.Output_Record[0] < Ud && D_PID.Error_Now < 0))
     {
-        D_PID.Error_Now = 0;
+        D_PID.Error_Now = -D_PID.Error_Now * 0.5;
     }
     if((Q_PID.Output_Record[0] > Uq && Q_PID.Error_Now > 0) 
     || (Q_PID.Output_Record[0] < Uq && Q_PID.Error_Now < 0))
     {
-        Q_PID.Error_Now = 0;
+        Q_PID.Error_Now = -Q_PID.Error_Now * 0.5;  
     }
     //PID计算，无抗饱和方法
     // D_PID.Error_Now = D_PID.Setvalue - D;
@@ -324,7 +324,7 @@ void Speed_Control()
     if((Speed_PID.Output_Record[0] > Q_PID.Setvalue && Speed_PID.Error_Now > 0) 
     || (Speed_PID.Output_Record[0] < Q_PID.Setvalue && Speed_PID.Error_Now < 0))
     {
-        Speed_PID.Error_Now = 0;
+        Speed_PID.Error_Now = -Speed_PID.Error_Now * 0.5;
     }
     //PID计算，无抗饱和方法
     // Speed_PID.Error_Now = Speed_PID.Setvalue - wm;
