@@ -57,8 +57,8 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
     if ((htim->Instance == TIM1) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)) {
         //电流环运行标志位
         extern bool Current_Control_Flag;
-        extern float theta;
-        theta = TLE5012B_Angle();
+        extern float theta_m;
+        theta_m = TLE5012B_Angle();
         //如果电流环未运行，才进行电流环
         if (Current_Control_Flag == false)
         {
@@ -68,19 +68,19 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    extern float theta;
-    extern float theta_last;
-    extern float wm;
-    extern float wm_last;
+    extern float theta_m;
+    extern float theta_m_last;
+    extern float n_m;
+    extern float n_m_last;
     extern float Udc;
     extern float U_svpwm_max;
     extern uint32_t ADC_Data[3];
-    if (theta - theta_last < 10 && theta - theta_last > -10) {
-        wm = (theta - theta_last) / (Ts_Speed * 6);
+    if (theta_m - theta_m_last < 10 && theta_m - theta_m_last > -10) {
+        n_m = (theta_m - theta_m_last) / (Ts_Speed * 6);
     }
-    wm = (1-Speed_Filter) * wm_last + Speed_Filter * wm;
-    wm_last = wm;
-    theta_last = theta;
+    n_m = (1-Speed_Filter) * n_m_last + Speed_Filter * n_m;
+    n_m_last = n_m;
+    theta_m_last = theta_m;
     Udc = ADC_Data[2] *0.00686;
     U_svpwm_max = Udc / SQRT3;
     Speed_Control();

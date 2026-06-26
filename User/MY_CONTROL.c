@@ -205,15 +205,18 @@ void Set_CCR(float Duty_A, float Duty_B, float Duty_C)
 
 void Discrete_PID_Controller(Discrete_PID_Struct* PID)
 {
-    float Temp_Output = 0;
-    Temp_Output += PID->a1 * PID->Output_Record[0];
-    Temp_Output += PID->a2 * PID->Output_Record[1];
-    Temp_Output += PID->b0 * PID->Error_Now;
-    Temp_Output += PID->b1 * PID->Error_Record[0];
-    Temp_Output += PID->b2 * PID->Error_Record[1];
-    PID->Output_Now = Temp_Output;
-    PID->Output_Record[1] = PID->Output_Record[0];
-    PID->Output_Record[0] = PID->Output_Now;
+    //增量式实现：输入误差，输出控制增量
+    float Temp_Output_Delta = 0;
+    Temp_Output_Delta += PID->a1 * PID->Output_Delta_Record[0];
+    Temp_Output_Delta += PID->a2 * PID->Output_Delta_Record[1];
+    Temp_Output_Delta += PID->b0 * PID->Error_Now;
+    Temp_Output_Delta += PID->b1 * PID->Error_Record[0];
+    Temp_Output_Delta += PID->b2 * PID->Error_Record[1];
+    Temp_Output_Delta += PID->b3 * PID->Error_Record[2];
+    PID->Output_Delta_Now = Temp_Output_Delta;
+    PID->Output_Delta_Record[1] = PID->Output_Delta_Record[0];
+    PID->Output_Delta_Record[0] = PID->Output_Delta_Now;
+    PID->Error_Record[2] = PID->Error_Record[1];
     PID->Error_Record[1] = PID->Error_Record[0];
     PID->Error_Record[0] = PID->Error_Now;
 }
@@ -221,25 +224,25 @@ void Discrete_PID_Controller(Discrete_PID_Struct* PID)
 void Current_Control()
 {
     //机械角度
-    extern float theta;
+    extern float theta_m;
     extern float Angel_ZERO;
     //电角度
     extern float theta_e;
     //三相自然坐标系
     extern float Current_abc[3];
     //两相静止坐标
-    extern float alpha;
-    extern float beta;
+    extern float I_alpha;
+    extern float I_beta;
     //同步旋转坐标系
-    extern float D;
-    extern float Q;
+    extern float I_d;
+    extern float I_q;
     //三相占空比
     extern float Duty_A;
     extern float Duty_B;
     extern float Duty_C;
     //DQ轴电压
-    extern float Ud;
-    extern float Uq;
+    extern float U_d;
+    extern float U_q;
     //母线电压
     extern float Udc;
     //SVPWM最大电压
@@ -248,49 +251,31 @@ void Current_Control()
     extern Discrete_PID_Struct D_PID;
     extern Discrete_PID_Struct Q_PID;
     //三角函数
-    extern float Sin;
-    extern float Cos;
+    extern float Sin_theta_e;
+    extern float Cos_theta_e;
     //电流环运行标志位
     extern bool Current_Control_Flag;
     //置位标志位
     Current_Control_Flag = true;
     //计算电角度
-    theta_e = theta * MOTOR_POLE_PAIRS + Angel_ZERO;
+    theta_e = theta_m * MOTOR_POLE_PAIRS + Angel_ZERO;
     theta_e = fmod(theta_e, 360);
     theta_e<0?theta_e+=360:theta_e;
     //计算三角函数
-    DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
+    DSP_Float_Calc_SinCos(theta_e, &Sin_theta_e, &Cos_theta_e);
     //计算电流
-    Clarke_Trans(Current_abc[0], Current_abc[1], Current_abc[2], &alpha, &beta);
-    Park_Trans(alpha, beta, Sin, Cos, &D, &Q);
-    // PID计算，抗饱和方法为反算
-    D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Now);
-    Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Now);
-    //PID计算，抗饱和方法为饱和冻结和反算
-    // //计算理论误差
-    // D_PID.Error_Now = D_PID.Setvalue - D + D_ANTI_SAT * (Ud - D_PID.Output_Record[0]);
-    // Q_PID.Error_Now = Q_PID.Setvalue - Q + Q_ANTI_SAT * (Uq - Q_PID.Output_Record[0]);
-    // if((D_PID.Output_Record[0] > Ud && D_PID.Error_Now > 0) 
-    // || (D_PID.Output_Record[0] < Ud && D_PID.Error_Now < 0))
-    // {
-    //     D_PID.Error_Now = -D_PID.Error_Now * 0.1;
-    // }
-    // if((Q_PID.Output_Record[0] > Uq && Q_PID.Error_Now > 0) 
-    // || (Q_PID.Output_Record[0] < Uq && Q_PID.Error_Now < 0))
-    // {
-    //     Q_PID.Error_Now = -Q_PID.Error_Now * 0.1;
-    // }
-    //PID计算，无抗饱和方法
-    // D_PID.Error_Now = D_PID.Setvalue - D;
-    // Q_PID.Error_Now = Q_PID.Setvalue - Q;
+    Clarke_Trans(Current_abc[0], Current_abc[1], Current_abc[2], &I_alpha, &I_beta);
+    Park_Trans(I_alpha, I_beta, Sin_theta_e, Cos_theta_e, &I_d, &I_q);
+    D_PID.Error_Now = D_PID.Setvalue - I_d;
+    Q_PID.Error_Now = Q_PID.Setvalue - I_q;
     Discrete_PID_Controller(&D_PID);
     Discrete_PID_Controller(&Q_PID);
-    Ud = D_PID.Output_Now;
-    Uq = Q_PID.Output_Now;
+    U_d += D_PID.Output_Delta_Now;
+    U_q += Q_PID.Output_Delta_Now;
     //SVPWM调制
-    SVPWM_Calculation(&Ud, &Uq, Sin, Cos, U_svpwm_max, Udc, &Duty_A, &Duty_B, &Duty_C);
-    // Q_PID.Output_Record[0] = Uq;
-    // D_PID.Output_Record[0] = Ud;
+    SVPWM_Calculation(&U_d, &U_q, Sin_theta_e, Cos_theta_e, U_svpwm_max, Udc, &Duty_A, &Duty_B, &Duty_C);
+    // Q_PID.Output_Record[0] = U_q;
+    // D_PID.Output_Record[0] = U_d;
     //设定CCR值
     Set_CCR(Duty_A, Duty_B, Duty_C);
     //重置标志位
@@ -306,7 +291,7 @@ void Speed_Control()
     //速度环控制器
     extern Discrete_PID_Struct Speed_PID;
     //当前角速度
-    extern float wm;
+    extern float n_m;
     //速度环给定限幅
     if(Speed_PID.Setvalue < -Speed_Target_Limit)
     {
@@ -316,31 +301,17 @@ void Speed_Control()
     {
         Speed_PID.Setvalue = Speed_Target_Limit;
     }
-    //PID计算，抗饱和方法为反算
-    Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
-    //PID计算，抗饱和方法为饱和冻结和反算
-    //计算理论误差
-    // Speed_PID.Error_Now = Speed_PID.Setvalue - wm + Speed_ANTI_SAT * (Q_PID.Setvalue - Speed_PID.Output_Now);
-    // if((Speed_PID.Output_Record[0] > Q_PID.Setvalue && Speed_PID.Error_Now > 0) 
-    // || (Speed_PID.Output_Record[0] < Q_PID.Setvalue && Speed_PID.Error_Now < 0))
-    // {
-    //     Speed_PID.Error_Now = 0;
-    // }
-    //PID计算，无抗饱和方法
-    // Speed_PID.Error_Now = Speed_PID.Setvalue - wm;
+    Speed_PID.Error_Now = Speed_PID.Setvalue - n_m;
     Discrete_PID_Controller(&Speed_PID);
+    Q_PID.Setvalue += Speed_PID.Output_Delta_Now;
     //采用Id=0，Iq给定的控制策略
-    if (Speed_PID.Output_Now < -Speed_Output_Limit)
+    if (Q_PID.Setvalue < -Speed_Output_Limit)
     {
         Q_PID.Setvalue = -Speed_Output_Limit;
     }
-    else if (Speed_PID.Output_Now > Speed_Output_Limit)
+    else if (Q_PID.Setvalue > Speed_Output_Limit)
     {
         Q_PID.Setvalue = Speed_Output_Limit;
-    }
-    else
-    {
-        Q_PID.Setvalue = Speed_PID.Output_Now;
     }
 }
 
@@ -355,20 +326,20 @@ void PID_Struct_Init(float Kp, float Ki, float Kd, float N, float Ts, float Defa
         Nd = 0;
         D = 0;
     }
-
-    PID->Output_Now = 0;
-    PID->Output_Record[0] = 0;
-    PID->Output_Record[1] = 0;
-
-    PID->Error_Now = 0;
+    //增量式实现：输入误差，输出控制增量
     PID->Error_Record[0] = 0;
     PID->Error_Record[1] = 0;
-
+    PID->Error_Record[2] = 0;
+    PID->Output_Delta_Record[0] = 0;
+    PID->Output_Delta_Record[1] = 0;
+    PID->Error_Now = 0;
+    PID->Output_Delta_Now = 0;
     PID->Setvalue = Default_Set;
 
-    PID->a1 = 1 - Nd;
-    PID->a2 = Nd;
+    PID->a1 = -(Nd-1);
+    PID->a2 = -(-Nd);
     PID->b0 = P + I + D;
-    PID->b1 = P * Nd - P + I * Nd + I - 2 * D;
-    PID->b2 = D + I * Nd - P * Nd;
+    PID->b1 = P*Nd-2*P+I*Nd-3*D;
+    PID->b2 = 3*D-2*P*Nd+P-I;
+    PID->b3 = P*Nd-D-I*Nd;
 }
