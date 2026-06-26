@@ -176,19 +176,19 @@ int main(void)
     HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
     for (int i = 0; i < 10; i++)
     {
-        //ADC零位检测
-        HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-        HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
-        HAL_ADC_Start(&hadc1);
-        if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK)
-        {
-            ADC1_ZERO += HAL_ADC_GetValue(&hadc1) / 4096.0 * 3.3;
-        }
-        HAL_ADC_Start(&hadc2);
-        if (HAL_ADC_PollForConversion(&hadc2, HAL_MAX_DELAY) == HAL_OK)
-        {
-            ADC2_ZERO += HAL_ADC_GetValue(&hadc2) / 4096.0 * 3.3;
-        }
+      //ADC零位检测
+      HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+      HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
+      HAL_ADC_Start(&hadc1);
+      if (HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK)
+      {
+          ADC1_ZERO += HAL_ADC_GetValue(&hadc1) / 4096.0 * 3.3;
+      }
+      HAL_ADC_Start(&hadc2);
+      if (HAL_ADC_PollForConversion(&hadc2, HAL_MAX_DELAY) == HAL_OK)
+      {
+          ADC2_ZERO += HAL_ADC_GetValue(&hadc2) / 4096.0 * 3.3;
+      }
     }
     ADC1_ZERO = ADC1_ZERO / 10.0;
     ADC2_ZERO = ADC2_ZERO / 10.0;
@@ -203,7 +203,7 @@ int main(void)
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     //编码器零位校准
-    
+
     // //基于I闭环控制模型抽象的编码器零位矫正
     // int k = 0;
     // Ud = 12;
@@ -285,53 +285,53 @@ int main(void)
 
     //基于转子吸附的编码器零位矫正
     int k = 0;
-    Ud = 5;
+    Ud = U_svpwm_max;
     while(k<10)
     {
-        //A相
-        Set_CCR(0.9,0.1,0.1);
-        HAL_Delay(500);
-        theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS;
-        theta_e = fmod(theta_e, 360);
-        theta_e<0?theta_e+=360:theta_e;
-        Angel_ZERO += 360 - theta_e;
-        //B相
-        Set_CCR(0.1,0.9,0.1);
-        HAL_Delay(500);
-        theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS - 120;
-        theta_e = fmod(theta_e, 360);
-        theta_e<0?theta_e+=360:theta_e;
-        Angel_ZERO += 360 - theta_e;  
-        //C相
-        Set_CCR(0.1,0.1,0.9);
-        HAL_Delay(500);
-        theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS + 120;
-        theta_e = fmod(theta_e, 360);
-        theta_e<0?theta_e+=360:theta_e;
-        Angel_ZERO += 360 - theta_e;
-        //计算零位
-        Angel_ZERO = Angel_ZERO / 3;
-        //验证
-        theta_last = TLE5012B_Angle();
-        for (int i = 0; i < 100; i++)
-        {
-            theta_e = TLE5012B_Angle();
-            theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
-            DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
-            SVPWM_Calculation(&Ud, &Uq, Sin, Cos, U_svpwm_max, Udc, &Duty_A, &Duty_B, &Duty_C);
-            Set_CCR(Duty_A, Duty_B, Duty_C);
-        }
-        theta = TLE5012B_Angle();
-        wm = (1 - Speed_Filter) * (theta - theta_last) + Speed_Filter * wm;
-        Ud = 12;
-        if (wm < 0.1 && wm > -0.1)
-        {
-            break; 
-        }
-        else {
-            k++;
-            Angel_ZERO = 0;
-        }
+      //A相
+      Set_CCR(0.9,0.1,0.1);
+      HAL_Delay(500);
+      theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS;
+      theta_e = fmod(theta_e, 360);
+      theta_e<0?theta_e+=360:theta_e;
+      Angel_ZERO += 360 - theta_e;
+      //B相
+      Set_CCR(0.1,0.9,0.1);
+      HAL_Delay(500);
+      theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS - 120;
+      theta_e = fmod(theta_e, 360);
+      theta_e<0?theta_e+=360:theta_e;
+      Angel_ZERO += 360 - theta_e;  
+      //C相
+      Set_CCR(0.1,0.1,0.9);
+      HAL_Delay(500);
+      theta_e = TLE5012B_Angle() * MOTOR_POLE_PAIRS + 120;
+      theta_e = fmod(theta_e, 360);
+      theta_e<0?theta_e+=360:theta_e;
+      Angel_ZERO += 360 - theta_e;
+      //计算零位
+      Angel_ZERO = Angel_ZERO / 3;
+      //验证
+      theta_last = TLE5012B_Angle();
+      for (int i = 0; i < 100; i++)
+      {
+        theta_e = TLE5012B_Angle();
+        theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
+        DSP_Float_Calc_SinCos(theta_e, &Sin, &Cos);
+        SVPWM_Calculation(&Ud, &Uq, Sin, Cos, U_svpwm_max, Udc, &Duty_A, &Duty_B, &Duty_C);
+        Set_CCR(Duty_A, Duty_B, Duty_C);
+      }
+      theta = TLE5012B_Angle();
+      wm = (1 - Speed_Filter) * (theta - theta_last) + Speed_Filter * wm;
+      Ud = 12;
+      if (wm < 0.5 && wm > -0.5)
+      {
+        break; 
+      }
+      else {
+        k++;
+        Angel_ZERO = 0;
+      }
     }
     
 
