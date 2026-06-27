@@ -14,7 +14,6 @@ void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef *hadc) {
     extern float ADC2_ZERO;
     //野值剔除暂存变量
     float Current_last[3];
-    extern Discrete_PID_Struct Q_PID;
     //由于ADC1需要采集两个数据（其中有一个电压数据），ADC2只需要采集一个数据，因此ADC1总会比ADC2更晚进入中断
     if (hadc == &hadc1) {
         HAL_GPIO_WritePin(Test_GPIO_Port,Test_Pin, GPIO_PIN_SET);
@@ -31,25 +30,25 @@ void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef *hadc) {
         Current_abc[0] = -((ADC_Data[0] / 4096.0) * 3.3 - ADC1_ZERO) * 2;
         Current_abc[1] = -((ADC_Data[1] / 4096.0) * 3.3 - ADC2_ZERO) * 2;
         Current_abc[2] = -Current_abc[0] - Current_abc[1];
-        if((Current_abc[0] > 0.45) || (Current_abc[0] < -0.45))
-        {
-            Current_abc[0] = Current_last[0];
-            Current_abc[1] = Current_last[1];
-            Current_abc[2] = Current_last[2];
-        }
-        else if((Current_abc[1] > 0.45) || (Current_abc[1] < -0.45))
-        {
-            Current_abc[0] = Current_last[0];
-            Current_abc[1] = Current_last[1];
-            Current_abc[2] = Current_last[2];
-
-        }
-        else if((Current_abc[2] > 0.45) || (Current_abc[2] < -0.45))
-        {
-            Current_abc[0] = Current_last[0];
-            Current_abc[1] = Current_last[1];
-            Current_abc[2] = Current_last[2];
-        }
+        // if((Current_abc[0] > 0.45) || (Current_abc[0] < -0.45))
+        // {
+        //     Current_abc[0] = Current_last[0];
+        //     Current_abc[1] = Current_last[1];
+        //     Current_abc[2] = Current_last[2];
+        // }
+        // else if((Current_abc[1] > 0.45) || (Current_abc[1] < -0.45))
+        // {
+        //     Current_abc[0] = Current_last[0];
+        //     Current_abc[1] = Current_last[1];
+        //     Current_abc[2] = Current_last[2];
+        //
+        // }
+        // else if((Current_abc[2] > 0.45) || (Current_abc[2] < -0.45))
+        // {
+        //     Current_abc[0] = Current_last[0];
+        //     Current_abc[1] = Current_last[1];
+        //     Current_abc[2] = Current_last[2];
+        // }
     }
 }
 

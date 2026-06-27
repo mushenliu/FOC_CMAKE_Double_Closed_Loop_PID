@@ -202,83 +202,83 @@ int main(void)
     //编码器零位校准
 
     //基于I闭环控制模型抽象的编码器零位矫正
-    int k = 0;
-    U_d = U_svpwm_max;
-    U_q = 0;
-    float wm_0_90[2] = {0};
-    for (int i = 0; i < 2; i++)
-    {
-      //读取起始机械角度
-      theta_m_last = TLE5012B_Angle();
-      // 给定Ud情况下转动
-      for (int j = 0; j < 50; j++)
-      {
-        theta_e = TLE5012B_Angle();
-        theta_e = theta_e * MOTOR_POLE_PAIRS + i * 90;
-        DSP_Float_Calc_SinCos(theta_e, &Sin_theta_e, &Cos_theta_e);
-        SVPWM_Calculation(&U_d, &U_q, Sin_theta_e, Cos_theta_e,U_svpwm_max, Udc, 
-          &Duty_A, &Duty_B, &Duty_C);
-        Set_CCR(Duty_A, Duty_B, Duty_C);
-      }
-      // 读取结束机械角度
-      theta_m = TLE5012B_Angle();
-      wm_0_90[i] = theta_m - theta_m_last;
-      U_d = U_svpwm_max;
-    }
-    if (wm_0_90[0] * wm_0_90[1] < 0)
-    {
-      //零位位于第一、第三象限
-      if (wm_0_90[1] < 0)
-      {
-        //零位位于第三象限
-        Angel_ZERO = 180;
-      }
-      else if (wm_0_90[1] > 0)
-      {
-        //零位位于第一象限
-        Angel_ZERO = 0;
-      }
-    }
-    else if (wm_0_90[0] * wm_0_90[1] > 0)
-    {
-      //零位位于第二、第四象限
-      if (wm_0_90[1] < 0)
-      {
-        //零位位于第二象限
-        Angel_ZERO = 90;
-      }
-      else if (wm_0_90[1] > 0)
-      {
-        //零位位于第四象限
-        Angel_ZERO = 270;
-      }
-    }
-    while (k < 3)
-    {
-      float Angle_ZERO_Init = Angel_ZERO;
-      theta_m_last = TLE5012B_Angle();
-      for (int i = 0; i < 100; i++)
-      {
-        theta_e = TLE5012B_Angle();
-        theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
-        DSP_Float_Calc_SinCos(theta_e, &Sin_theta_e, &Cos_theta_e);
-        SVPWM_Calculation(&U_d, &U_q, Sin_theta_e, Cos_theta_e,U_svpwm_max, Udc, 
-          &Duty_A, &Duty_B, &Duty_C);
-        Set_CCR(Duty_A, Duty_B, Duty_C);
-      }
-      theta_m = TLE5012B_Angle();
-      n_m = (1 - Speed_Filter) * (theta_m - theta_m_last) + Speed_Filter * n_m;
-      U_d = U_svpwm_max;
-      if (n_m < 0.5 && n_m > -0.5)
-      {
-        k++;
-      }
-      else
-      {
-        k = 0;
-        Angel_ZERO += 0.1 * n_m;
-      }
-    }
+    // int k = 0;
+    // U_d = U_svpwm_max;
+    // U_q = 0;
+    // float wm_0_90[2] = {0};
+    // for (int i = 0; i < 2; i++)
+    // {
+    //   //读取起始机械角度
+    //   theta_m_last = TLE5012B_Angle();
+    //   // 给定Ud情况下转动
+    //   for (int j = 0; j < 50; j++)
+    //   {
+    //     theta_e = TLE5012B_Angle();
+    //     theta_e = theta_e * MOTOR_POLE_PAIRS + i * 90;
+    //     DSP_Float_Calc_SinCos(theta_e, &Sin_theta_e, &Cos_theta_e);
+    //     SVPWM_Calculation(&U_d, &U_q, Sin_theta_e, Cos_theta_e,U_svpwm_max, Udc,
+    //       &Duty_A, &Duty_B, &Duty_C);
+    //     Set_CCR(Duty_A, Duty_B, Duty_C);
+    //   }
+    //   // 读取结束机械角度
+    //   theta_m = TLE5012B_Angle();
+    //   wm_0_90[i] = theta_m - theta_m_last;
+    //   U_d = U_svpwm_max;
+    // }
+    // if (wm_0_90[0] * wm_0_90[1] < 0)
+    // {
+    //   //零位位于第一、第三象限
+    //   if (wm_0_90[1] < 0)
+    //   {
+    //     //零位位于第三象限
+    //     Angel_ZERO = 180;
+    //   }
+    //   else if (wm_0_90[1] > 0)
+    //   {
+    //     //零位位于第一象限
+    //     Angel_ZERO = 0;
+    //   }
+    // }
+    // else if (wm_0_90[0] * wm_0_90[1] > 0)
+    // {
+    //   //零位位于第二、第四象限
+    //   if (wm_0_90[1] < 0)
+    //   {
+    //     //零位位于第二象限
+    //     Angel_ZERO = 90;
+    //   }
+    //   else if (wm_0_90[1] > 0)
+    //   {
+    //     //零位位于第四象限
+    //     Angel_ZERO = 270;
+    //   }
+    // }
+    // while (k < 3)
+    // {
+    //   float Angle_ZERO_Init = Angel_ZERO;
+    //   theta_m_last = TLE5012B_Angle();
+    //   for (int i = 0; i < 100; i++)
+    //   {
+    //     theta_e = TLE5012B_Angle();
+    //     theta_e = theta_e * MOTOR_POLE_PAIRS + Angel_ZERO;
+    //     DSP_Float_Calc_SinCos(theta_e, &Sin_theta_e, &Cos_theta_e);
+    //     SVPWM_Calculation(&U_d, &U_q, Sin_theta_e, Cos_theta_e,U_svpwm_max, Udc,
+    //       &Duty_A, &Duty_B, &Duty_C);
+    //     Set_CCR(Duty_A, Duty_B, Duty_C);
+    //   }
+    //   theta_m = TLE5012B_Angle();
+    //   n_m = (1 - Speed_Filter) * (theta_m - theta_m_last) + Speed_Filter * n_m;
+    //   U_d = U_svpwm_max;
+    //   if (n_m < 0.5 && n_m > -0.5)
+    //   {
+    //     k++;
+    //   }
+    //   else
+    //   {
+    //     k = 0;
+    //     Angel_ZERO += 0.1 * n_m;
+    //   }
+    // }
 
 
     //基于转子吸附的编码器零位矫正
