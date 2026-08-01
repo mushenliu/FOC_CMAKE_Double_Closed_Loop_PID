@@ -30,25 +30,6 @@ void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef *hadc) {
         Current_abc[0] = -((ADC_Data[0] / 4096.0) * 3.3 - ADC1_ZERO) * 2;
         Current_abc[1] = -((ADC_Data[1] / 4096.0) * 3.3 - ADC2_ZERO) * 2;
         Current_abc[2] = -Current_abc[0] - Current_abc[1];
-        // if((Current_abc[0] > 0.45) || (Current_abc[0] < -0.45))
-        // {
-        //     Current_abc[0] = Current_last[0];
-        //     Current_abc[1] = Current_last[1];
-        //     Current_abc[2] = Current_last[2];
-        // }
-        // else if((Current_abc[1] > 0.45) || (Current_abc[1] < -0.45))
-        // {
-        //     Current_abc[0] = Current_last[0];
-        //     Current_abc[1] = Current_last[1];
-        //     Current_abc[2] = Current_last[2];
-        //
-        // }
-        // else if((Current_abc[2] > 0.45) || (Current_abc[2] < -0.45))
-        // {
-        //     Current_abc[0] = Current_last[0];
-        //     Current_abc[1] = Current_last[1];
-        //     Current_abc[2] = Current_last[2];
-        // }
     }
 }
 

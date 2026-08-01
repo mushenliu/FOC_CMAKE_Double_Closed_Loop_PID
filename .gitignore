@@ -1,4 +1,5 @@
 build
 mx.scratch
-!.settings
+# STM32CubeIDE/Eclipse 运行时状态，不追踪
+.settings/
 .idea/
